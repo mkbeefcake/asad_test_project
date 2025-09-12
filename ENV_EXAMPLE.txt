@@ -1,0 +1,15 @@
+FLASK_ENV=development
+SECRET_KEY=change-me
+
+DATABASE_URL=postgresql://postgres:rootroot@localhost/asad_db
+
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+GOOGLE_REDIRECT_URI=http://127.0.0.1:5000/oauth2/callback
+
+CELERY_BROKER_URL=redis://localhost:6379/0
+CELERY_RESULT_BACKEND=redis://localhost:6379/0
+
+OPENAI_API_KEY=
+ANTHROPIC_API_KEY=
+
