@@ -30,6 +30,11 @@ class BaseConfig:
 class DevelopmentConfig(BaseConfig):
 	DEBUG = True
 
+	# Celery dev-only: run tasks inline without a broker/worker
+	CELERY_TASK_ALWAYS_EAGER = True
+	CELERY_BROKER_URL = "memory://"
+	CELERY_RESULT_BACKEND = "cache+memory://"
+
 
 class ProductionConfig(BaseConfig):
 	DEBUG = False
