@@ -1,6 +1,6 @@
 from flask import Flask
 from .config import get_config
-from .extensions import register_extensions
+from .extensions import register_extensions, db
 from .routes import register_routes
 
 
@@ -29,6 +29,12 @@ def create_app(config_name: str | None = None) -> Flask:
 	@app.get("/")
 	def root():
 		return {"status": "ok", "service": "asad_test_project"}, 200
+
+	# Shell context for Flask CLI
+	@app.shell_context_processor
+	def make_shell_context():  # pragma: no cover - dev helper
+		from . import models
+		return {"db": db, "models": models}
 
 	return app
 
