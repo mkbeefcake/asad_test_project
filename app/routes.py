@@ -1,6 +1,7 @@
 from flask import Flask, render_template
 from .blueprints.oauth import bp as oauth_bp
 from .tasks.gmail import sync_user_gmail
+from .services.llm import safe_openai_complete, safe_anthropic_complete
 
 
 def register_routes(app: Flask) -> None:
@@ -34,4 +35,22 @@ def register_routes(app: Flask) -> None:
 		except Exception as exc:  # noqa: BLE001
 			app.logger.error("Template render error: %s", exc)
 			return {"error": "template_error"}, 500
+
+	@app.post("/llm/openai")
+	def llm_openai():
+		try:
+			text = safe_openai_complete("Say hello briefly.")
+			return {"text": text}, 200
+		except Exception as exc:  # noqa: BLE001
+			app.logger.error("OpenAI route error: %s", exc)
+			return {"error": "openai_failed"}, 500
+
+	@app.post("/llm/anthropic")
+	def llm_anthropic():
+		try:
+			text = safe_anthropic_complete("Say hello briefly.")
+			return {"text": text}, 200
+		except Exception as exc:  # noqa: BLE001
+			app.logger.error("Anthropic route error: %s", exc)
+			return {"error": "anthropic_failed"}, 500
 
