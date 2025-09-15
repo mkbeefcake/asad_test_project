@@ -18,7 +18,6 @@ except Exception:  # pragma: no cover - optional until DB task
 db = SQLAlchemy() if SQLAlchemy else None  # lazy placeholder until installed
 migrate = Migrate() if Migrate else None
 
-
 def register_extensions(app: Flask) -> None:
 	"""Register Flask extensions safely with error handling."""
 	# Initialize SQLAlchemy
@@ -32,6 +31,8 @@ def register_extensions(app: Flask) -> None:
 	if migrate is not None and db is not None:
 		try:
 			migrate.init_app(app, db)
+			
+			from .models import User, GmailToken, ProcessedMessage, Order, RefundRequest, NotFoundRefund, UnhandledEmail
 		except Exception as exc:  # noqa: BLE001
 			app.logger.error("Failed to init Flask-Migrate: %s", exc)
 
