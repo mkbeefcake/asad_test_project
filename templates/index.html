@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Page</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
+</head>
+<body>
+    <div class="container">
+        <!-- Left Side - Login -->
+        <div class="login-section">
+            <div class="login-box">
+                <h1>Welcome</h1>
+                <p>Sign in with your Google account</p>
+                <div class="google-btn" onclick="window.location.href='/oauth2/login'">
+                    <div class="google-icon-wrapper">
+                        <img class="google-icon" src="{{ url_for('static', filename='images/google.svg') }}"/>
+                    </div>
+                    <p class="btn-text">Sign in with Google</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Side - User List -->
+        <div class="users-section">
+            <div class="users-box">
+                <h2>Active Users</h2>
+                <div class="users-list" id="usersList">
+                    <!-- Users will be populated here via JavaScript -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/login.js') }}"></script>
+</body>
+</html>

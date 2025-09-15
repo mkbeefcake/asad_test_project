@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-from flask import Blueprint, current_app, jsonify, redirect, request, url_for
+from flask import Blueprint, current_app, jsonify, redirect, request, url_for, session
 
 from app.extensions import db
 from app.models import User, GmailToken
@@ -12,7 +12,8 @@ from app.services.google_oauth import (
 	fetch_userinfo,
 )
 
-
+# Active users storage (In production, use a database)
+active_users = {}
 bp = Blueprint("oauth", __name__, url_prefix="/oauth2")
 
 
@@ -88,3 +89,27 @@ def callback():
 		current_app.logger.error("OAuth callback error: %s", exc)
 		return jsonify({"error": "oauth_callback_failed"}), 500
 
+@bp.route('/active-users')
+def get_active_users():
+    users_list = [
+        {
+            'id': user_id,
+            'name': user_info['name'],
+            'email': user_info['email'],
+            'picture': user_info['picture']
+        }
+        for user_id, user_info in active_users.items()
+    ]
+    return jsonify({'users': users_list})
+
+@bp.route('/logout/<user_id>', methods=['POST'])
+def logout_user(user_id):
+    try:
+        if user_id in active_users:
+            del active_users[user_id]
+            if session.get('user_id') == user_id:
+                session.clear()
+            return jsonify({'success': True})
+        return jsonify({'success': False, 'message': 'User not found'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
