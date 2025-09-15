@@ -30,9 +30,8 @@ function createUserElement(user) {
     userItem.className = 'user-item';
     
     userItem.innerHTML = `
-        <img class="user-avatar" src="${user.picture}" alt="User avatar">
+        <p>Mail: </p>
         <div class="user-info">
-            <div class="user-name">${user.name}</div>
             <div class="user-email">${user.email}</div>
         </div>
         <button class="logout-btn" onclick="logoutUser('${user.id}')">Logout</button>
