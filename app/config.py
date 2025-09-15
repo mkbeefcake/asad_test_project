@@ -25,6 +25,8 @@ class BaseConfig:
 	# LLM API Keys
 	OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 	ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
+	GROQ_API_KEY = os.environ["GROQ_API_KEY"]
+	GROQ_MODEL_NAME = os.environ["GROQ_MODEL_NAME"]
 
 
 class DevelopmentConfig(BaseConfig):
