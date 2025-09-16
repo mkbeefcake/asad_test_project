@@ -80,7 +80,7 @@ def fetch_userinfo(access_token: str) -> dict[str, Any]:
 			continue
 	return {}
 
-
+GOOGLE_TOKEN_URI = "https://oauth2.googleapis.com/token"
 def refresh_access_token(refresh_token: str) -> dict[str, Any]:
 	if Credentials is None or Request is None:
 		raise RuntimeError("google-auth not installed")
@@ -90,6 +90,7 @@ def refresh_access_token(refresh_token: str) -> dict[str, Any]:
 		refresh_token=refresh_token,
 		client_id=current_app.config.get("GOOGLE_CLIENT_ID"),
 		client_secret=current_app.config.get("GOOGLE_CLIENT_SECRET"),
+		token_uri=GOOGLE_TOKEN_URI,
 		scopes=_scopes(),
 	)
 	creds.refresh(Request())

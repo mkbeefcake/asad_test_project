@@ -1,7 +1,9 @@
 from app import create_app
-
+from app.tasks.gmail import sync_user_gmail
 
 app = create_app()
+with app.app_context():
+	sync_user_gmail(user_id=3, max_results=2)
 
 
 if __name__ == "__main__":

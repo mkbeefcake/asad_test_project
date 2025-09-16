@@ -29,8 +29,7 @@ function createUserElement(user) {
     const userItem = document.createElement('div');
     userItem.className = 'user-item';
     
-    userItem.innerHTML = `
-        <p>Mail: </p>
+    userItem.innerHTML = `        
         <div class="user-info">
             <div class="user-email">${user.email}</div>
         </div>

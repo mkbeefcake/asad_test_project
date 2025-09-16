@@ -10,11 +10,12 @@ from app.extensions import db
 from app.models import GmailToken
 from app.services.google_oauth import build_gmail_service, refresh_access_token
 
-
 def _needs_refresh(expiry: datetime | None) -> bool:
-	if not expiry:
-		return False
-	return expiry <= datetime.now(timezone.utc)
+    if not expiry:
+        return False
+    if expiry.tzinfo is None:  # make naive datetime UTC
+        expiry = expiry.replace(tzinfo=timezone.utc)
+    return expiry <= datetime.now(timezone.utc)
 
 
 @shared_task(bind=True, name="gmail.sync_user")
@@ -41,12 +42,23 @@ def sync_user_gmail(self, user_id: int, max_results: int = 10) -> dict[str, Any]
 		resp = (
 			service.users()
 			.messages()
-			.list(userId="me", maxResults=max_results, q=None)
+			.list(userId="me", maxResults=max_results, q="is:unread")
 			.execute()
 		)
-		message_ids = [m.get("id") for m in resp.get("messages", [])]
-		return {"ok": True, "count": len(message_ids), "message_ids": message_ids}
+
+		messages = []
+		for msg in resp.get("messages", []):
+			msg_id = msg.get("id")
+			msg_detail = service.users().messages().get(userId="me", id=msg_id, format="metadata", metadataHeaders=["From","Subject"]).execute()
+			headers = {h["name"]: h["value"] for h in msg_detail.get("payload", {}).get("headers", [])}
+			messages.append({
+                "id": msg_id,
+                "from": headers.get("From"),
+                "subject": headers.get("Subject"),
+                "snippet": msg_detail.get("snippet")
+			})
+
+		return {"ok": True, "count": len(messages), "message_ids": messages}
 	except Exception as exc:  # noqa: BLE001
 		current_app.logger.error("Gmail sync error for user %s: %s", user_id, exc)
 		raise
-
