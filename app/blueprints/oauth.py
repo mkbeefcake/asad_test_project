@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-from flask import Blueprint, current_app, jsonify, redirect, request, url_for, session
+from flask import Blueprint, current_app, jsonify, redirect, request, url_for, abort
 
 from app.extensions import db
 from app.models import User, GmailToken
@@ -10,7 +10,13 @@ from app.services.google_oauth import (
 	create_flow,
 	exchange_code_for_tokens,
 	fetch_userinfo,
+	watch_user_gmail,
+	get_history,
+	process_gmail_history
 )
+
+import base64
+import json
 
 # Active users storage (In production, use a database)
 bp = Blueprint("oauth", __name__, url_prefix="/oauth2")
@@ -83,6 +89,9 @@ def callback():
 			db.session.rollback()
 			return jsonify({"error": "db_commit_failed"}), 500
 
+		# Create watch service for Pub/Sub
+		watch_user_gmail(token.access_token)
+
 		return redirect(url_for("ui"))
 	except Exception as exc:  # noqa: BLE001
 		current_app.logger.error("OAuth callback error: %s", exc)
@@ -119,4 +128,47 @@ def logout_user(user_id):
 
 	except Exception as e:
 		return jsonify({'success': False, 'message': f'Error: {str(e)}'})
+	
 
+@bp.route("/pubsub/push", methods=["POST"])
+def pubsub_push():
+	envelope = request.get_json()
+	if not envelope or "message" not in envelope:
+		abort(400, "Invalid Pub/Sub message")
+
+	pubsub_message = envelope["message"]
+
+	# Decode base64 data
+	data = pubsub_message.get("data")
+	if not data:
+		abort(400, "No data in Pub/Sub message")
+
+	decoded_data = base64.b64decode(data).decode("utf-8")
+	message_data = json.loads(decoded_data)
+
+	# Gmail notification contains 'emailAddress' and 'historyId'
+	email = message_data.get("emailAddress")
+	history_id = message_data.get("historyId")
+
+	if not email or not history_id:
+		abort(400, "Missing emailAddress or historyId")
+
+	# Fetch user's Gmail history
+	user = User.query.filter_by(email=email).first()
+	if not user:
+		abort(400, "not found the user")
+
+	token = GmailToken.query.filter_by(user_id=user.id).first()
+	if not token:
+		abort(400, "Not found the access token")
+	
+	access_token = token.access_token
+	history = get_history(access_token=access_token, start_history_id=history_id)
+
+	print(f"New Gmail history for {email}: {history}")
+	new_messages = process_gmail_history(access_token=access_token, history=history)
+
+	# Pass this to LLM
+
+	# Always respond with 204 for Pub/Sub push
+	return ("", 204)

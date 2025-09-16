@@ -5,6 +5,7 @@ from typing import Any, Optional
 
 from flask import current_app, url_for
 import requests
+import base64
 
 try:
 	from google_auth_oauthlib.flow import Flow
@@ -106,3 +107,65 @@ def build_gmail_service(access_token: str) -> Any:
 	creds = Credentials(access_token, scopes=_scopes())
 	return build("gmail", "v1", credentials=creds, cache_discovery=False)
 
+
+def watch_user_gmail(access_token: str):	
+    service = build_gmail_service(access_token=access_token)
+    request = {
+        "topicName": "projects/PROJECT_ID/topics/gmail-updates"
+    }
+    response = service.users().watch(userId="me", body=request).execute()
+    return response
+
+def get_history(access_token, start_history_id):
+    service = build_gmail_service(access_token=access_token)
+    history = service.users().history().list(
+        userId="me", startHistoryId=start_history_id
+    ).execute()
+    return history
+
+def get_message_content(access_token, message_id):
+    service = build_gmail_service(access_token=access_token)
+    message = service.users().messages().get(
+        userId='me',
+        id=message_id,
+        format='full'  # options: 'minimal', 'full', 'metadata', 'raw'
+    ).execute()
+    
+    # Extract payload
+    payload = message.get('payload', {})
+    headers = payload.get('headers', [])
+
+    # Parse useful headers
+    subject = next((h['value'] for h in headers if h['name'] == 'Subject'), '')
+    from_ = next((h['value'] for h in headers if h['name'] == 'From'), '')
+    
+    # Extract body (handle multipart)
+    body = ''
+    if 'parts' in payload:
+        for part in payload['parts']:
+            if part['mimeType'] == 'text/plain':
+                body = base64.urlsafe_b64decode(part['body']['data']).decode('utf-8')
+                break
+    else:
+        body_data = payload.get('body', {}).get('data')
+        if body_data:
+            body = base64.urlsafe_b64decode(body_data).decode('utf-8')
+    
+    return {
+        "subject": subject,
+        "from": from_,
+        "body": body
+    }
+
+def process_gmail_history(access_token, history):
+	messages_array = []
+
+	for record in history.get('history', []):
+		# Only process new messages
+		for added in record.get('messagesAdded', []):
+			message_id = added['message']['id']
+			content = get_message_content(access_token=access_token, message_id=message_id)
+			messages_array.append(content)
+			print("New email:", content['subject'], "from", content['from'])
+
+	return messages_array
